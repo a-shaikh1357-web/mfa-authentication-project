@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MFA Demo</title>
+</head>
+<body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+.glroot{font-family:'Inter',sans-serif;background:#0f0e1a;min-height:600px;padding:2rem 1.25rem;position:relative;overflow:hidden;}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0;}
+.b1{width:300px;height:300px;background:#6c63ff30;top:-60px;left:-80px;}
+.b2{width:250px;height:250px;background:#38bdf830;top:100px;right:-60px;}
+.b3{width:200px;height:200px;background:#f472b620;bottom:80px;left:60px;}
+.b4{width:180px;height:180px;background:#a78bfa25;bottom:-40px;right:80px;}
+.wrap{position:relative;z-index:1;max-width:420px;margin:0 auto;}
+.screen{display:none;}
+.screen.active{display:block;animation:fin 0.35s ease;}
+@keyframes fin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.gpanel{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:1.75rem;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);margin-bottom:1rem;}
+.gpanel-sm{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:1rem 1.25rem;margin-bottom:0.75rem;}
+.badge-glass{display:inline-flex;align-items:center;gap:6px;background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.4);border-radius:20px;padding:4px 12px;font-size:10px;font-weight:500;color:#a78bfa;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;}
+.bdot{width:5px;height:5px;border-radius:50%;background:#a78bfa;}
+h1{font-size:22px;font-weight:600;color:#f1f0ff;margin-bottom:0.3rem;}
+.sub{font-size:13px;color:#7875a1;margin-bottom:1.25rem;line-height:1.6;}
+.glabel{font-size:11px;color:#7875a1;display:block;margin-bottom:5px;letter-spacing:0.04em;text-transform:uppercase;}
+.ginput{width:100%;padding:10px 14px;font-size:13px;font-family:'Inter',sans-serif;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#f1f0ff;outline:none;transition:border 0.2s;margin-bottom:1rem;}
+.ginput:focus{border-color:rgba(108,99,255,0.6);background:rgba(255,255,255,0.09);}
+.ginput::placeholder{color:#3d3b5e;}
+.gbtn{width:100%;padding:11px;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;cursor:pointer;transition:all 0.18s;border:none;letter-spacing:0.03em;margin-top:6px;}
+.gbtn:active{transform:scale(0.98);}
+.gbtn-primary{background:linear-gradient(135deg,#6c63ff,#a78bfa);color:#fff;}
+.gbtn-primary:hover{opacity:0.88;}
+.gbtn-secondary{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#b8b5d4;}
+.gbtn-secondary:hover{background:rgba(255,255,255,0.10);}
+.gbtn-danger{background:rgba(255,107,138,0.1);border:1px solid rgba(255,107,138,0.3);color:#ff6b8a;}
+.gbtn-link{background:none;border:none;color:#a78bfa;font-size:12px;width:auto;padding:0;margin-top:1rem;cursor:pointer;text-decoration:underline;display:block;text-align:center;}
+.step-row{display:flex;gap:6px;margin-bottom:1.5rem;}
+.sdot{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,0.08);transition:background 0.3s;}
+.sdot.done{background:#4ade80;}.sdot.active{background:#6c63ff;}
+.otp-row{display:flex;gap:8px;margin-bottom:1rem;}
+.otp-cell{flex:1;text-align:center;font-size:22px;padding:10px 2px;font-family:'JetBrains Mono',monospace;font-weight:500;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#f1f0ff;outline:none;transition:border 0.2s;width:100%;}
+.otp-cell:focus{border-color:rgba(108,99,255,0.7);background:rgba(255,255,255,0.10);}
+.secret-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.15em;word-break:break-all;color:#a78bfa;margin-bottom:1rem;text-align:center;}
+.qr-wrap{display:flex;justify-content:center;margin:0.75rem 0 1rem;}
+.qr-frame{background:#f1f0ff;border-radius:14px;padding:12px;display:inline-block;}
+.manual-entry{background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:10px;padding:10px 14px;font-size:11px;color:#7875a1;margin-bottom:1rem;line-height:1.7;}
+.manual-entry strong{color:#a78bfa;}
+.galert{padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:0.75rem;display:none;line-height:1.5;}
+.galert.show{display:block;}
+.galert-err{background:rgba(255,107,138,0.12);border:1px solid rgba(255,107,138,0.3);color:#ff6b8a;}
+.galert-ok{background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#4ade80;}
+.galert-info{background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);color:#a78bfa;}
+.verified-bar{display:flex;align-items:center;gap:10px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:10px;padding:10px 14px;margin-bottom:1.25rem;}
+.vtext{font-size:13px;color:#4ade80;font-weight:500;}
+.totp-ring-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;}
+.totp-val{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:500;letter-spacing:0.2em;color:#f1f0ff;}
+.ring-wrap{position:relative;width:46px;height:46px;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.rg{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:3;}
+.rf{fill:none;stroke:#6c63ff;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1s linear;}
+.rlbl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:500;color:#7875a1;font-family:'JetBrains Mono',monospace;}
+.method-tabs{display:flex;gap:6px;margin-bottom:1rem;}
+.mtab{flex:1;padding:8px;font-size:11px;font-weight:500;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);color:#7875a1;cursor:pointer;text-align:center;transition:all 0.15s;}
+.mtab.active{background:rgba(108,99,255,0.18);border-color:rgba(108,99,255,0.4);color:#a78bfa;}
+.avatar-ring{width:48px;height:48px;border-radius:50%;background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.35);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#a78bfa;}
+.user-row{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;}
+.uname{font-size:15px;font-weight:500;color:#f1f0ff;}.usub{font-size:12px;color:#7875a1;}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}
+.dmet{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;}
+.dmet-val{font-size:20px;font-weight:600;}.dmet-lbl{font-size:10px;color:#7875a1;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;}
+.dv-ok{color:#4ade80;}.dv-info{color:#38bdf8;}.dv-warn{color:#fbbf24;}.dv-purple{color:#a78bfa;}
+.hash-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;color:#6c63ff;}
+.backup-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:0.75rem;}
+.bcode{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#7875a1;text-align:center;}
+.bcode.used{text-decoration:line-through;opacity:0.3;}
+.users-list{margin-bottom:0.5rem;}
+.urow{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;color:#b8b5d4;}
+.urow:last-child{border-bottom:none;}
+.utag{font-size:9px;background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.25);color:#a78bfa;padding:2px 7px;border-radius:10px;}
+.info-row{display:flex;gap:8px;padding:8px 12px;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.15);border-radius:8px;font-size:11px;color:#7875a1;line-height:1.5;margin-bottom:1rem;}
+.bypass-btn{display:block;text-align:center;font-size:11px;color:#38bdf8;cursor:pointer;text-decoration:underline;margin-top:0.5rem;background:none;border:none;width:100%;}
+</style>
+
+<div class="glroot">
+<div class="bg-blob b1"></div><div class="bg-blob b2"></div>
+<div class="bg-blob b3"></div><div class="bg-blob b4"></div>
+<div class="wrap">
+
+  <!-- Welcome -->
+  <div id="s-welcome" class="screen active">
+    <div class="gpanel">
+      <div class="badge-glass"><div class="bdot"></div>BTech Cybersecurity</div>
+      <h1>Multi-Factor<br>Authentication</h1>
+      <p class="sub">TOTP · SHA-256 Hashing · Backup Codes — data persists across sessions.</p>
+      <div class="info-row">
+        <span style="color:#6c63ff;font-size:14px;flex-shrink:0">ⓘ</span>
+        <span>Registered users are saved permanently. You can close and reopen — your account stays.</span>
+      </div>
+      <button class="gbtn gbtn-primary" onclick="go('s-register')">Register New User</button>
+      <button class="gbtn gbtn-secondary" onclick="go('s-login')">Login to Existing Account</button>
+    </div>
+    <div class="gpanel-sm">
+      <div class="glabel" style="margin-bottom:0.6rem;">Registered users</div>
+      <div id="users-list-el"><div style="font-size:12px;color:#3d3b5e;">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- Register -->
+  <div id="s-register" class="screen">
+    <div class="badge-glass"><div class="bdot"></div>Step 1 of 3</div>
+    <div class="step-row"><div class="sdot active"></div><div class="sdot"></div><div class="sdot"></div></div>
+    <div class="gpanel">
+      <h1>Create account</h1>
+      <p class="sub">Password hashed with SHA-256 before saving.</p>
+      <div id="reg-alert" class="galert galert-err"></div>
+      <label class="glabel">Username</label>
+      <input class="ginput" type="text" id="reg-user" placeholder="e.g. alice_btech" autocomplete="off"/>
+      <label class="glabel">Password</label>
+      <input class="ginput" type="password" id="reg-pass" placeholder="Min. 6 characters"/>
+      <label class="glabel">Confirm password</label>
+      <input class="ginput" type="password" id="reg-pass2" placeholder="Repeat password"/>
+      <button class="gbtn gbtn-primary" onclick="doRegister()">Continue to TOTP Setup →</button>
+    </div>
+    <button class="gbtn-link" onclick="go('s-welcome')">← Back</button>
+  </div>
+
+  <!-- TOTP Setup -->
+  <div id="s-totp-setup" class="screen">
+    <div class="badge-glass"><div class="bdot"></div>Step 2 of 3</div>
+    <div class="step-row"><div class="sdot done"></div><div class="sdot active"></div><div class="sdot"></div></div>
+    <div class="gpanel">
+      <h1>Authenticator setup</h1>
+      <p class="sub">Scan the QR code with Google Authenticator or Authy. Or enter the secret key manually.</p>
+
+      <div class="qr-wrap">
+        <div class="qr-frame" id="qr-container"></div>
+      </div>
+
+      <div class="glabel">Manual entry secret key</div>
+      <div class="secret-box" id="totp-secret-display">—</div>
+
+      <div class="manual-entry">
+        <strong>How to add manually:</strong> Open your authenticator app → Add account → Enter setup key → paste the key above → set Time-based → Save
+      </div>
+
+      <div id="totp-alert" class="galert galert-err"></div>
+      <div id="totp-ok" class="galert galert-ok"></div>
+
+      <label class="glabel">Enter the 6-digit code shown in your app</label>
+      <div class="otp-row" id="otp-grid-setup"></div>
+
+      <button class="gbtn gbtn-primary" id="verify-setup-btn" onclick="verifySetupTOTP()">Verify & Continue →</button>
+
+      <button class="bypass-btn" onclick="bypassTOTP()">
+        No authenticator app? Skip verification (demo mode)
+      </button>
+    </div>
+    <div class="gpanel-sm">
+      <div style="font-size:11px;color:#7875a1;line-height:1.9;">
+        <span style="color:#a78bfa;font-weight:500;">TOTP (RFC 6238)</span> = HMAC-SHA1(secret, ⌊time/30⌋)<br>
+        Code refreshes every <span style="color:#f1f0ff;">30 seconds</span> · Purely time-based, no network needed
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup Codes -->
+  <div id="s-backup" class="screen">
+    <div class="badge-glass"><div class="bdot"></div>Step 3 of 3</div>
+    <div class="step-row"><div class="sdot done"></div><div class="sdot done"></div><div class="sdot active"></div></div>
+    <div class="gpanel">
+      <h1>Save backup codes</h1>
+      <p class="sub">Each code is single-use. Store them somewhere safe offline.</p>
+      <div class="backup-grid" id="backup-codes-grid"></div>
+      <button class="gbtn gbtn-primary" onclick="go('s-login')">Done — Go to Login →</button>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="s-login" class="screen">
+    <div class="badge-glass"><div class="bdot"></div>Authentication · Factor 1</div>
+    <div class="gpanel">
+      <h1>Login</h1>
+      <p class="sub">Enter your credentials to begin authentication.</p>
+      <div id="login-alert" class="galert galert-err"></div>
+      <label class="glabel">Username</label>
+      <input class="ginput" type="text" id="login-user" placeholder="Your username" autocomplete="off"/>
+      <label class="glabel">Password</label>
+      <input class="ginput" type="password" id="login-pass" placeholder="Your password"/>
+      <button class="gbtn gbtn-primary" onclick="doLogin()">Continue to 2FA →</button>
+    </div>
+    <button class="gbtn-link" onclick="go('s-welcome')">← Back</button>
+  </div>
+
+  <!-- 2FA -->
+  <div id="s-2fa" class="screen">
+    <div class="badge-glass"><div class="bdot"></div>Authentication · Factor 2</div>
+    <div class="gpanel">
+      <h1>Two-factor verify</h1>
+      <p class="sub">Confirm your identity with a second factor.</p>
+      <div class="method-tabs">
+        <div class="mtab active" onclick="switchMethod('totp',this)">Authenticator app</div>
+        <div class="mtab" onclick="switchMethod('backup',this)">Backup code</div>
+      </div>
+
+      <div id="method-totp">
+        <div class="gpanel-sm" style="margin-bottom:0.75rem;">
+          <div class="totp-ring-row">
+            <div>
+              <div style="font-size:10px;color:#7875a1;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;">Current code</div>
+              <div class="totp-val" id="live-totp">------</div>
+            </div>
+            <div class="ring-wrap">
+              <svg width="46" height="46" viewBox="0 0 46 46">
+                <circle class="rg" cx="23" cy="23" r="19"/>
+                <circle class="rf" id="ring-fg" cx="23" cy="23" r="19" stroke-dasharray="119.4" stroke-dashoffset="0"/>
+              </svg>
+              <div class="rlbl" id="timer-sec">30</div>
+            </div>
+          </div>
+        </div>
+        <label class="glabel">Enter 6-digit code from your app</label>
+        <div class="otp-row" id="otp-grid-verify"></div>
+        <div id="totp-verify-alert" class="galert galert-err"></div>
+        <button class="gbtn gbtn-primary" onclick="verifyTOTP()">Verify code →</button>
+      </div>
+
+      <div id="method-backup" style="display:none;">
+        <label class="glabel">Enter a backup code</label>
+        <input class="ginput" type="text" id="backup-input" placeholder="e.g. ABCD-1234" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;"/>
+        <div id="backup-alert" class="galert galert-err"></div>
+        <button class="gbtn gbtn-primary" onclick="verifyBackup()">Use backup code →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="s-dashboard" class="screen">
+    <div class="badge-glass"><div class="bdot" style="background:#4ade80;"></div>Authenticated</div>
+    <div class="gpanel">
+      <div class="verified-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+          <circle cx="12" cy="12" r="10" fill="rgba(74,222,128,0.15)"/>
+          <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="vtext">MFA authentication successful</div>
+      </div>
+      <div class="user-row">
+        <div class="avatar-ring" id="dash-avatar">A</div>
+        <div><div class="uname" id="dash-username">—</div><div class="usub">MFA enabled · Session active</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="dmet"><div class="dmet-val dv-ok">Active</div><div class="dmet-lbl">Session</div></div>
+        <div class="dmet"><div class="dmet-val dv-purple" id="dash-factor">TOTP</div><div class="dmet-lbl">Factor used</div></div>
+        <div class="dmet"><div class="dmet-val dv-info" id="dash-backup-left">8</div><div class="dmet-lbl">Backup codes left</div></div>
+        <div class="dmet"><div class="dmet-val dv-warn">SHA-256</div><div class="dmet-lbl">Hash algo</div></div>
+      </div>
+      <div class="gpanel-sm" style="margin-bottom:0.75rem;">
+        <div class="glabel">Password hash (stored)</div>
+        <div class="hash-box" id="dash-hash">—</div>
+      </div>
+      <div class="gpanel-sm">
+        <div class="glabel">Backup codes</div>
+        <div class="backup-grid" id="dash-backup-grid"></div>
+      </div>
+      <button class="gbtn gbtn-secondary" onclick="doLogout()">Logout</button>
+      <button class="gbtn gbtn-danger" onclick="deleteAccount()">Delete my account</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const DB_KEY = 'mfa_users_v2';
+let SESSION = { loginUser: null, currentUser: null, factor: null };
+let timerInt = null;
+
+async function loadDB() {
+  try { const r = localStorage.getItem(DB_KEY); return r ? JSON.parse(r) : {}; }
+  catch(e) { return {}; }
+}
+async function saveDB(db) {
+  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 's-2fa') startTOTPTimer();
+  if (id === 's-welcome') refreshUsersList();
+}
+
+function showAlert(id, msg, type='err') {
+  const el = document.getElementById(id);
+  el.className = 'galert galert-' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function randB32(len) {
+  const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b => c[b % 32]).join('');
+}
+
+function genBackups() {
+  return Array.from({length:8}, () => randB32(4) + '-' + Array.from(crypto.getRandomValues(new Uint8Array(4))).map(x=>x%10).join(''));
+}
+
+function b32decode(s) {
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0, val = 0;
+  const out = [];
+  for (const c of s.toUpperCase().replace(/[^A-Z2-7]/g,'')) {
+    const idx = alpha.indexOf(c);
+    if (idx < 0) continue;
+    val = (val << 5) | idx; bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 0xff); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+
+async function computeTOTP(secret, offset) {
+  const t = Math.floor(Date.now() / 1000 / 30) + (offset || 0);
+  const keyBytes = b32decode(secret);
+  if (keyBytes.length === 0) return null;
+  const tb = new ArrayBuffer(8);
+  new DataView(tb).setUint32(4, t, false);
+  const ck = await crypto.subtle.importKey('raw', keyBytes, {name:'HMAC', hash:'SHA-1'}, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', ck, tb));
+  const off = sig[19] & 0xf;
+  const code = ((sig[off]&0x7f)<<24 | (sig[off+1]&0xff)<<16 | (sig[off+2]&0xff)<<8 | (sig[off+3]&0xff)) % 1000000;
+  return String(code).padStart(6, '0');
+}
+
+async function validateTOTP(secret, input) {
+  for (const offset of [-1, 0, 1]) {
+    const code = await computeTOTP(secret, offset);
+    if (code && code === input) return true;
+  }
+  return false;
+}
+
+function buildOTPGrid(containerId) {
+  const g = document.getElementById(containerId);
+  g.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'tel';
+    inp.maxLength = 1;
+    inp.className = 'otp-cell';
+    inp.setAttribute('inputmode', 'numeric');
+    inp.setAttribute('pattern', '[0-9]');
+    inp.addEventListener('input', e => {
+      const v = e.target.value.replace(/\D/g,'');
+      e.target.value = v.slice(-1);
+      if (v && i < 5) g.children[i+1].focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value && i > 0) {
+        g.children[i-1].focus();
+      }
+    });
+    inp.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+      for (let j = 0; j < 6 && j < text.length; j++) {
+        g.children[j].value = text[j];
+      }
+      const last = Math.min(text.length, 5);
+      g.children[last].focus();
+    });
+    g.appendChild(inp);
+  }
+}
+
+function getOTPValue(containerId) {
+  return Array.from(document.getElementById(containerId).children).map(i => i.value).join('');
+}
+
+function renderBackupCodes(codes, gridId) {
+  const g = document.getElementById(gridId);
+  g.innerHTML = '';
+  codes.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'bcode' + (c.used ? ' used' : '');
+    d.textContent = c.code || c;
+    g.appendChild(d);
+  });
+}
+
+function drawQRCode(text) {
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+  try {
+    new QRCode(container, {
+      text: text,
+      width: 160,
+      height: 160,
+      colorDark: '#1a1628',
+      colorLight: '#f1f0ff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    container.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#7875a1;text-align:center;padding:1rem;">QR unavailable — use manual key below</div>';
+  }
+}
+
+async function doRegister() {
+  const u = document.getElementById('reg-user').value.trim();
+  const p = document.getElementById('reg-pass').value;
+  const p2 = document.getElementById('reg-pass2').value;
+  if (!u) { showAlert('reg-alert','Enter a username'); return; }
+  if (u.length < 3) { showAlert('reg-alert','Username must be at least 3 characters'); return; }
+  if (!p) { showAlert('reg-alert','Enter a password'); return; }
+  if (p.length < 6) { showAlert('reg-alert','Password must be at least 6 characters'); return; }
+  if (p !== p2) { showAlert('reg-alert','Passwords do not match'); return; }
+
+  const db = await loadDB();
+  if (db[u]) { showAlert('reg-alert','Username already taken — choose another'); return; }
+
+  const hash = await sha256(p);
+  const secret = randB32(16);
+  const backups = genBackups();
+
+  db[u] = {
+    hash,
+    secret,
+    backups: backups.map(c => ({ code: c, used: false })),
+    totpVerified: false
+  };
+  await saveDB(db);
+  SESSION.currentUser = u;
+
+  document.getElementById('totp-secret-display').textContent = secret;
+  buildOTPGrid('otp-grid-setup');
+  renderBackupCodes(backups, 'backup-codes-grid');
+
+  go('s-totp-setup');
+
+  setTimeout(() => {
+    const uri = `otpauth://totp/MFADemo:${encodeURIComponent(u)}?secret=${secret}&issuer=MFADemo&algorithm=SHA1&digits=6&period=30`;
+    drawQRCode(uri);
+  }, 100);
+}
+
+async function verifySetupTOTP() {
+  const input = getOTPValue('otp-grid-setup').trim();
+  if (input.length < 6) { showAlert('totp-alert', 'Enter all 6 digits from your authenticator app'); return; }
+
+  const db = await loadDB();
+  const u = db[SESSION.currentUser];
+  if (!u) { showAlert('totp-alert', 'Session error — please register again'); return; }
+
+  const ok = await validateTOTP(u.secret, input);
+  if (ok) {
+    u.totpVerified = true;
+    await saveDB(db);
+    document.getElementById('totp-alert').classList.remove('show');
+    showAlert('totp-ok', 'TOTP verified successfully!', 'ok');
+    setTimeout(() => go('s-backup'), 800);
+  } else {
+    showAlert('totp-alert', 'Wrong code — wait for the next 30s cycle and try again. Make sure your phone time is correct.');
+  }
+}
+
+async function bypassTOTP() {
+  const db = await loadDB();
+  const u = db[SESSION.currentUser];
+  if (!u) return;
+  u.totpVerified = false;
+  await saveDB(db);
+  go('s-backup');
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) { showAlert('login-alert', 'Enter both username and password'); return; }
+
+  const db = await loadDB();
+  if (!db[u]) { showAlert('login-alert', `No account found for "${u}" — please register first`); return; }
+
+  const hash = await sha256(p);
+  if (hash !== db[u].hash) { showAlert('login-alert', 'Incorrect password'); return; }
+
+  SESSION.loginUser = u;
+  buildOTPGrid('otp-grid-verify');
+  go('s-2fa');
+}
+
+async function startTOTPTimer() {
+  clearInterval(timerInt);
+  const db = await loadDB();
+  const u = db[SESSION.loginUser];
+  if (!u) return;
+  const secret = u.secret;
+
+  const tick = async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const remaining = 30 - (nowSec % 30);
+    const code = await computeTOTP(secret);
+    const el = document.getElementById('live-totp');
+    const secEl = document.getElementById('timer-sec');
+    const ring = document.getElementById('ring-fg');
+    if (el) el.textContent = code || '------';
+    if (secEl) secEl.textContent = remaining;
+    if (ring) {
+      ring.style.strokeDashoffset = 119.4 * (1 - remaining / 30);
+      ring.style.stroke = remaining <= 5 ? '#ff6b8a' : '#6c63ff';
+    }
+  };
+  await tick();
+  timerInt = setInterval(tick, 1000);
+}
+
+function switchMethod(m, tab) {
+  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('method-totp').style.display = m === 'totp' ? '' : 'none';
+  document.getElementById('method-backup').style.display = m === 'backup' ? '' : 'none';
+}
+
+async function verifyTOTP() {
+  const input = getOTPValue('otp-grid-verify').trim();
+  if (input.length < 6) { showAlert('totp-verify-alert', 'Enter all 6 digits'); return; }
+
+  const db = await loadDB();
+  const u = db[SESSION.loginUser];
+  if (!u) { showAlert('totp-verify-alert', 'Session expired — please login again'); return; }
+
+  const ok = await validateTOTP(u.secret, input);
+  if (ok) {
+    SESSION.factor = 'TOTP';
+    clearInterval(timerInt);
+    showDash();
+  } else {
+    showAlert('totp-verify-alert', 'Invalid code — it refreshes every 30s. Try again.');
+  }
+}
+
+async function verifyBackup() {
+  const input = document.getElementById('backup-input').value.trim().toUpperCase();
+  if (!input) { showAlert('backup-alert', 'Enter a backup code'); return; }
+
+  const db = await loadDB();
+  const u = db[SESSION.loginUser];
+  const found = u.backups.find(b => !b.used && b.code === input);
+  if (found) {
+    found.used = true;
+    await saveDB(db);
+    SESSION.factor = 'Backup Code';
+    clearInterval(timerInt);
+    showDash();
+  } else {
+    showAlert('backup-alert', 'Invalid or already used backup code');
+  }
+}
+
+async function showDash() {
+  const uname = SESSION.loginUser;
+  const db = await loadDB();
+  const u = db[uname];
+  document.getElementById('dash-avatar').textContent = uname[0].toUpperCase();
+  document.getElementById('dash-username').textContent = uname;
+  document.getElementById('dash-factor').textContent = SESSION.factor;
+  document.getElementById('dash-backup-left').textContent = u.backups.filter(b => !b.used).length;
+  document.getElementById('dash-hash').textContent = u.hash;
+  renderBackupCodes(u.backups, 'dash-backup-grid');
+  go('s-dashboard');
+}
+
+async function deleteAccount() {
+  if (!confirm('Delete your account permanently?')) return;
+  const db = await loadDB();
+  delete db[SESSION.loginUser];
+  await saveDB(db);
+  clearInterval(timerInt);
+  SESSION = { loginUser: null, currentUser: null, factor: null };
+  go('s-welcome');
+}
+
+function doLogout() {
+  clearInterval(timerInt);
+  SESSION.loginUser = null; SESSION.factor = null;
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  go('s-welcome');
+}
+
+async function refreshUsersList() {
+  const el = document.getElementById('users-list-el');
+  const db = await loadDB();
+  const keys = Object.keys(db);
+  if (!keys.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#3d3b5e;padding:4px 0;">No users registered yet</div>';
+    return;
+  }
+  el.innerHTML = '<div class="users-list">' + keys.map(u =>
+    `<div class="urow"><span>${u}</span><span class="utag">${db[u].totpVerified ? 'TOTP verified' : 'Demo / bypass'}</span></div>`
+  ).join('') + '</div>';
+}
+
+refreshUsersList();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</body>
+</html>
